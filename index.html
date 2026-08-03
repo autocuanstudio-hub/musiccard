@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kartu Musik</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#1c1a17;--muted:#8a827a;--card:#f6f2ea;--accent:#c85a3c;--line:#ddd4c6;--shadow:rgba(60,50,40,.18)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:radial-gradient(120% 90% at 15% 0%,#f3eee4 0%,transparent 60%),linear-gradient(160deg,#ece5da,#e2d9ca);color:var(--ink);min-height:100vh;padding:28px 18px 60px}
+  .wrap{max-width:520px;margin:0 auto}
+  header{margin-bottom:24px}
+  .eyebrow{font-family:'Space Grotesk',sans-serif;font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:8px}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.05}
+  .sub{color:var(--muted);font-size:14px;margin-top:8px;line-height:1.5}
+  .row{display:flex;gap:10px;margin-bottom:10px}
+  .field{flex:1}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+  input[type=text]{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:#faf7f1;font-size:15px;font-family:inherit;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+  input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,90,60,.14)}
+  .btn{width:100%;padding:13px;border:none;border-radius:12px;background:var(--ink);color:#f6f2ea;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:transform .1s,background .15s;margin-top:4px}
+  .btn:hover{background:#000}.btn:active{transform:scale(.99)}.btn:disabled{opacity:.5;cursor:default}
+  .status{font-size:13px;color:var(--muted);margin-top:12px;min-height:18px;text-align:center}
+  .status.err{color:var(--accent)}
+  .results{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+  .res{border:2px solid transparent;border-radius:12px;overflow:hidden;cursor:pointer;background:#e9e2d5;aspect-ratio:1;position:relative;transition:transform .12s}
+  .res:hover{transform:translateY(-2px)}
+  .res img{width:100%;height:100%;object-fit:cover;display:block}
+  .res.sel{border-color:var(--accent)}
+  .res .tick{position:absolute;top:4px;right:4px;width:18px;height:18px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;display:none;align-items:center;justify-content:center}
+  .res.sel .tick{display:flex}
+  .src-tag{position:absolute;bottom:3px;left:3px;font-size:8px;font-weight:700;color:#fff;background:rgba(0,0,0,.45);padding:1px 4px;border-radius:4px;text-transform:uppercase}
+
+  /* segmented controls */
+  .controls{margin-top:22px;display:flex;flex-direction:column;gap:10px;align-items:center}
+  .ctl{display:flex;align-items:center;gap:10px}
+  .ctl .cap{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);width:56px;text-align:right}
+  .seg{display:inline-flex;background:#e6ded0;border-radius:11px;padding:3px;gap:2px}
+  .seg button{border:none;background:none;font-family:'Space Grotesk',sans-serif;font-size:12.5px;font-weight:600;color:var(--muted);padding:7px 14px;border-radius:9px;cursor:pointer;transition:.15s}
+  .seg button.on{background:#faf7f1;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+  .stage{margin-top:22px;display:flex;justify-content:center}
+  .music-card{position:relative;overflow:hidden;display:flex;align-items:center;gap:18px;border-radius:22px;padding:16px 22px 16px 18px;width:100%;max-width:410px;box-shadow:0 14px 34px -10px var(--shadow),0 2px 0 rgba(255,255,255,.5) inset;background:var(--card)}
+  .music-card>.art-stage,.music-card>.meta{position:relative;z-index:2}
+  .backdrop{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;display:none}
+  .tint{position:absolute;inset:0;z-index:1;display:none}
+  .meta{min-width:0;flex:1}
+  .title{font-weight:700;font-size:21px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;color:#171310}
+  .artist{font-size:16px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#6f6a63}
+  .album{font-size:15px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#8f8a82}
+
+  /* art stage + motifs */
+  .art-stage{position:relative;flex-shrink:0;height:96px}
+  .art-stage .art{position:absolute;object-fit:cover;background:#ded6c8}
+  .art-stage[data-motif=original]{width:92px}
+  .art-stage[data-motif=original] .art{width:92px;height:92px;left:0;top:2px;border-radius:16px;z-index:3;box-shadow:0 3px 12px rgba(30,20,10,.28)}
+  .art-stage[data-motif=vinyl]{width:132px}
+  .art-stage[data-motif=vinyl] .art{width:96px;height:96px;left:0;top:0;border-radius:8px;z-index:3;box-shadow:0 3px 12px rgba(30,20,10,.28)}
+  .art-stage[data-motif=cassette]{width:132px}
+  .art-stage[data-motif=cassette] .art{width:132px;height:90px;left:0;top:3px;border-radius:11px;z-index:1;box-shadow:0 3px 12px rgba(30,20,10,.28)}
+
+  .vinyl{position:absolute;width:90px;height:90px;left:40px;top:3px;border-radius:50%;z-index:2;box-shadow:0 3px 10px rgba(0,0,0,.35);display:none}
+  .art-stage[data-motif=vinyl] .vinyl{display:block}
+  .vinyl-label{position:absolute;top:50%;left:50%;width:32%;height:32%;transform:translate(-50%,-50%);border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center}
+  .vinyl-label .hole{width:16%;height:16%;background:#0d0d0d;border-radius:50%;box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+  .vinyl .sheen{position:absolute;inset:0;border-radius:50%;background:linear-gradient(125deg,rgba(255,255,255,.14),transparent 42%)}
+
+  .cassette{position:absolute;inset:3px 0 auto 0;height:90px;z-index:2;display:none;pointer-events:none}
+  .art-stage[data-motif=cassette] .cassette{display:block}
+  .cass-window{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:86px;height:34px;background:rgba(20,16,12,.62);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:20px}
+  .reel{width:24px;height:24px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(255,255,255,.25)}
+  .screw{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.35);box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}
+  .screw.tl{top:6px;left:8px}.screw.tr{top:6px;right:8px}.screw.bl{bottom:6px;left:8px}.screw.br{bottom:6px;right:8px}
+
+  @media (prefers-reduced-motion: no-preference){.vinyl{animation:spin 3.4s linear infinite}.reel{animation:spin 2.2s linear infinite}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .editor{margin-top:22px;padding-top:22px;border-top:1px solid var(--line);display:none}
+  .editor.on{display:block}
+  .editor h2{font-family:'Space Grotesk',sans-serif;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:14px}
+  .art-tools{display:flex;gap:14px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .link{font-size:13px;color:var(--accent);font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;background:none;border:none;font-family:inherit;padding:6px 0}
+  .actions{margin-top:20px;display:none;gap:10px}
+  .actions.on{display:flex}
+  .actions .btn{margin-top:0}
+  .ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line)}
+  .ghost:hover{background:#faf7f1}
+  .tip{font-size:12px;color:var(--muted);margin-top:18px;line-height:1.6;text-align:center}
+  .tip code{background:#e5ddce;padding:1px 6px;border-radius:5px;font-size:11px}
+  #save-ov{position:fixed;inset:0;background:rgba(20,16,12,.88);display:none;align-items:center;justify-content:center;z-index:999;padding:24px}
+  #save-ov .ov-inner{text-align:center;max-width:92vw}
+  #save-ov p{color:#f6f2ea;font-size:14px;margin-bottom:14px;line-height:1.5}
+  #save-ov img{max-width:100%;max-height:66vh;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  #save-ov button{margin-top:18px;background:#f6f2ea;color:#1c1a17;border:none;padding:10px 24px;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Now playing · builder</div>
+    <h1>Kartu Musik</h1>
+    <p class="sub">Foto album otomatis dari Apple Music &amp; Deezer, cover buatan untuk lagu custom. Campur bentuk (original / vinyl / kaset) dengan tampilan (kertas / warna dinamis / frosted gelap).</p>
+  </header>
+
+  <div class="row">
+    <div class="field"><label for="q-song">Judul lagu</label><input type="text" id="q-song" placeholder="mis. nowhere, nobody" autocomplete="off" /></div>
+    <div class="field"><label for="q-artist">Artis</label><input type="text" id="q-artist" placeholder="mis. Ariana Grande" autocomplete="off" /></div>
+  </div>
+  <button class="btn" id="search-btn">Cari foto album</button>
+  <div class="status" id="status"></div>
+  <div class="results" id="results"></div>
+
+  <div class="controls">
+    <div class="ctl"><span class="cap">Bentuk</span>
+      <div class="seg" id="seg-motif">
+        <button data-v="original" class="on">Original</button>
+        <button data-v="vinyl">Vinyl</button>
+        <button data-v="cassette">Kaset</button>
+      </div>
+    </div>
+    <div class="ctl"><span class="cap">Tampilan</span>
+      <div class="seg" id="seg-theme">
+        <button data-v="paper" class="on">Kertas</button>
+        <button data-v="dynamic">Dinamis</button>
+        <button data-v="frosted">Frosted</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="music-card" id="card" data-theme="paper">
+      <img class="backdrop" id="backdrop" alt="" />
+      <div class="tint" id="tint"></div>
+      <div class="art-stage" id="stage" data-motif="original">
+        <div class="vinyl" id="vinyl"><div class="sheen"></div><div class="vinyl-label"><span class="hole"></span></div></div>
+        <img class="art" id="card-art" alt="" />
+        <div class="cassette" id="cassette">
+          <span class="screw tl"></span><span class="screw tr"></span><span class="screw bl"></span><span class="screw br"></span>
+          <div class="cass-window"><div class="reel" id="reel1"></div><div class="reel" id="reel2"></div></div>
+        </div>
+      </div>
+      <div class="meta">
+        <div class="title" id="card-title">Judul lagu</div>
+        <div class="artist" id="card-artist">Nama artis</div>
+        <div class="album" id="card-album">Album · Tahun</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor" id="editor">
+    <h2>Sesuaikan teks</h2>
+    <div class="field" style="margin-bottom:10px"><label for="e-title">Judul</label><input type="text" id="e-title" /></div>
+    <div class="field" style="margin-bottom:10px"><label for="e-artist">Artis</label><input type="text" id="e-artist" /></div>
+    <div class="row">
+      <div class="field"><label for="e-album">Album</label><input type="text" id="e-album" /></div>
+      <div class="field"><label for="e-year">Tahun</label><input type="text" id="e-year" /></div>
+    </div>
+    <div class="art-tools">
+      <button class="link" id="gen-btn">✦ Buatkan cover otomatis</button>
+      <input type="file" id="upload" accept="image/*" hidden />
+      <button class="link" id="up-btn">↑ Atau upload gambar sendiri</button>
+    </div>
+  </div>
+
+  <div class="actions" id="actions">
+    <button class="btn ghost" id="reset-btn" style="flex:1">Reset</button>
+    <button class="btn" id="dl-btn" style="flex:2">Simpan gambar</button>
+  </div>
+
+  <p class="tip">Warna dinamis &amp; frosted diambil dari foto albumnya. Buka file ini langsung di browser (bukan di dalam Claude) supaya download jalan mulus.</p>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const statusEl=$('status');
+const PLACEHOLDER='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23ded6c8"/></svg>');
+function corsSafe(u){if(!u||u.startsWith('data:'))return u;return 'https://wsrv.nl/?url='+encodeURIComponent(u);}
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;}return Math.abs(h);}
+
+const state={motif:'original',theme:'paper',dom:null,domDark:null,lum:0,blur:null};
+
+/* groove backgrounds (plain radial-gradients = export safe) */
+function grooves(rings,c1,c2){let s=[];for(let i=0;i<rings;i++){const a=(i/rings*100).toFixed(1),b=((i+1)/rings*100).toFixed(1);s.push(`${i%2?c1:c2} ${a}% ${b}%`);}return `radial-gradient(circle at center, ${s.join(',')})`;}
+$('vinyl').style.background=grooves(24,'#101010','#1e1e1e');
+[$('reel1'),$('reel2')].forEach(r=>r.style.background=grooves(10,'#1a1a1a','#333'));
+
+/* ---- analyze album art: dominant color + blurred backdrop ---- */
+function analyzeArt(){
+  const img=$('card-art');
+  if(!img.naturalWidth){return;}
+  // dominant color (saturation-weighted average)
+  try{
+    const c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d');
+    x.drawImage(img,0,0,32,32);
+    const d=x.getImageData(0,0,32,32).data;
+    let R=0,G=0,B=0,W=0;
+    for(let i=0;i<d.length;i+=4){
+      const r=d[i],g=d[i+1],b=d[i+2],a=d[i+3];if(a<125)continue;
+      const mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+      const w=(mx-mn)+18; // bias toward saturated pixels
+      R+=r*w;G+=g*w;B+=b*w;W+=w;
+    }
+    if(W){const dr=Math.round(R/W),dg=Math.round(G/W),db=Math.round(B/W);
+      state.dom=[dr,dg,db];state.domDark=[Math.round(dr*.55),Math.round(dg*.55),Math.round(db*.55)];
+      state.lum=(0.299*dr+0.587*dg+0.114*db)/255;
+    }
+  }catch(e){state.dom=null;}
+  // blurred backdrop baked into a canvas (export safe)
+  try{
+    const s=document.createElement('canvas');s.width=s.height=36;s.getContext('2d').drawImage(img,0,0,36,36);
+    const o=document.createElement('canvas');o.width=o.height=300;const ox=o.getContext('2d');
+    ox.imageSmoothingEnabled=true;ox.imageSmoothingQuality='high';ox.drawImage(s,0,0,300,300);
+    state.blur=o.toDataURL('image/jpeg',0.85);
+  }catch(e){state.blur=null;}
+  applyTheme();
+}
+$('card-art').addEventListener('load',analyzeArt);
+
+function rgb(a){return `rgb(${a[0]},${a[1]},${a[2]})`;}
+function rgba(a,al){return `rgba(${a[0]},${a[1]},${a[2]},${al})`;}
+function applyTheme(){
+  const card=$('card'),bd=$('backdrop'),tint=$('tint'),t=$('card-title'),ar=$('card-artist'),al=$('card-album');
+  card.dataset.theme=state.theme;
+  // reset
+  card.style.background='';bd.style.display='none';tint.style.display='none';
+  [t,ar,al].forEach(el=>el.style.color='');
+  if(state.theme==='dynamic' && state.dom){
+    card.style.background=`linear-gradient(135deg, ${rgb(state.dom)}, ${rgb(state.domDark)})`;
+    const fg = state.lum>0.6 ? '#231708' : '#ffffff';
+    t.style.color=fg;
+    ar.style.color = state.lum>0.6 ? 'rgba(30,20,8,.72)' : 'rgba(255,255,255,.82)';
+    al.style.color = state.lum>0.6 ? 'rgba(30,20,8,.55)' : 'rgba(255,255,255,.65)';
+  }else if(state.theme==='frosted'){
+    card.style.background='#16130f';
+    if(state.blur){bd.src=state.blur;bd.style.display='block';}
+    tint.style.background='linear-gradient(135deg, rgba(8,8,10,.30), rgba(8,8,10,.66))';
+    tint.style.display='block';
+    t.style.color='#fff';ar.style.color='rgba(255,255,255,.82)';al.style.color='rgba(255,255,255,.64)';
+  }
+}
+
+/* ---- toggles ---- */
+$('seg-motif').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...$('seg-motif').children].forEach(x=>x.classList.toggle('on',x===b));state.motif=b.dataset.v;$('stage').dataset.motif=state.motif;});
+$('seg-theme').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;[...$('seg-theme').children].forEach(x=>x.classList.toggle('on',x===b));state.theme=b.dataset.v;applyTheme();});
+
+/* ---- search sources ---- */
+function jsonp(url){return new Promise((res,rej)=>{const cb='cb_'+Math.random().toString(36).slice(2);const s=document.createElement('script');const to=setTimeout(()=>{cl();rej();},9000);function cl(){clearTimeout(to);delete window[cb];if(s.parentNode)s.parentNode.removeChild(s);}window[cb]=d=>{cl();res(d);};s.onerror=()=>{cl();rej();};s.src=url+(url.includes('?')?'&':'?')+'callback='+cb;document.body.appendChild(s);});}
+async function searchItunes(t){try{const d=await jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(t)}&entity=song&limit=6`);return (d.results||[]).filter(r=>r.artworkUrl100).map(r=>({title:r.trackName||'',artist:r.artistName||'',album:r.collectionName||'',year:(r.releaseDate||'').slice(0,4),thumb:r.artworkUrl100,art:r.artworkUrl100.replace(/\/\d+x\d+bb/,'/600x600bb'),src:'apple'}));}catch(e){return[];}}
+async function searchDeezer(t){try{const d=await jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(t)}&limit=6&output=jsonp`);return (d.data||[]).filter(r=>r.album&&r.album.cover_medium).map(r=>({title:r.title||'',artist:(r.artist&&r.artist.name)||'',album:(r.album&&r.album.title)||'',year:'',thumb:r.album.cover_medium,art:r.album.cover_xl||r.album.cover_big||r.album.cover_medium,src:'deezer'}));}catch(e){return[];}}
+
+function genCover(title,artist){
+  const c=document.createElement('canvas');c.width=c.height=600;const x=c.getContext('2d');
+  const h=hashStr((title||'x')+(artist||'')),hue=h%360,hue2=(hue+45+h%50)%360;
+  const g=x.createLinearGradient(0,0,600,600);g.addColorStop(0,`hsl(${hue},62%,52%)`);g.addColorStop(1,`hsl(${hue2},58%,32%)`);
+  x.fillStyle=g;x.fillRect(0,0,600,600);x.globalAlpha=.18;
+  for(let i=0;i<3;i++){const r=120+hashStr(title+i)%160;x.fillStyle=i%2?'#fff':'#000';x.beginPath();x.arc(hashStr('a'+i+title)%600,hashStr('b'+i+artist)%600,r,0,7);x.fill();}
+  x.globalAlpha=1;const words=(title||'Untitled').split(' '),lines=[];let l='';
+  words.forEach(w=>{if((l+' '+w).length>14){lines.push(l.trim());l=w;}else l+=' '+w;});if(l.trim())lines.push(l.trim());
+  x.fillStyle='#fff';x.textAlign='left';const fs=lines.length>2?58:74;x.font=`700 ${fs}px Inter,sans-serif`;
+  let ty=600-70-(lines.length-1)*(fs+6);lines.slice(0,3).forEach(t=>{x.fillText(t,48,ty);ty+=fs+6;});
+  if(artist){x.globalAlpha=.85;x.font='500 30px Inter,sans-serif';x.fillText(artist.toUpperCase().slice(0,22),48,64);x.globalAlpha=1;}
+  return c.toDataURL('image/png');
+}
+
+let matches=[];
+async function doSearch(){
+  const song=$('q-song').value.trim(),artist=$('q-artist').value.trim(),term=(artist+' '+song).trim();
+  if(!term){setStatus('Isi judul lagu dulu ya.',true);return;}
+  setStatus('Mencari di Apple Music & Deezer…');$('search-btn').disabled=true;$('results').innerHTML='';
+  const a=await searchItunes(term),d=await searchDeezer(term),seen=new Set();
+  matches=[...a,...d].filter(m=>{const k=(m.title+m.artist).toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+  $('search-btn').disabled=false;
+  if(!matches.length){setStatus('Tak ada di katalog — cover dibuat otomatis dari judul ✦');fillEditor({title:song||'Judul lagu',artist:artist||'Nama artis',album:'',year:'',art:genCover(song||'Untitled',artist)});return;}
+  setStatus(`Ketemu ${matches.length} hasil — pilih salah satu:`);renderResults();selectMatch(0);
+}
+function renderResults(){const box=$('results');box.innerHTML='';matches.forEach((m,i)=>{const d=document.createElement('div');d.className='res';d.dataset.i=i;d.innerHTML=`<img src="${m.thumb}" alt=""><span class="tick">✓</span><span class="src-tag">${m.src}</span>`;d.onclick=()=>selectMatch(i);box.appendChild(d);});}
+function selectMatch(i){document.querySelectorAll('.res').forEach(el=>el.classList.toggle('sel',+el.dataset.i===i));const m=matches[i];fillEditor({title:m.title,artist:m.artist,album:m.album,year:m.year,art:m.art});}
+function setLabelColor(){document.querySelector('.vinyl-label').style.background=`hsl(${hashStr($('e-title').value||'x')%360},68%,52%)`;}
+function fillEditor(o){
+  $('e-title').value=o.title;$('e-artist').value=o.artist;$('e-album').value=o.album;$('e-year').value=o.year;
+  $('editor').classList.add('on');$('actions').classList.add('on');
+  if(o.art){const el=$('card-art');el.crossOrigin='anonymous';el.src=corsSafe(o.art);}
+  setLabelColor();syncCard();
+}
+function syncCard(){$('card-title').textContent=$('e-title').value||'Judul lagu';$('card-artist').textContent=$('e-artist').value||'Nama artis';const alb=$('e-album').value.trim(),yr=$('e-year').value.trim();$('card-album').textContent=[alb,yr].filter(Boolean).join(' · ')||'Album · Tahun';}
+['e-title','e-artist','e-album','e-year'].forEach(id=>$(id).addEventListener('input',()=>{syncCard();setLabelColor();}));
+
+$('gen-btn').addEventListener('click',()=>{$('card-art').crossOrigin='anonymous';$('card-art').src=genCover($('e-title').value||'Untitled',$('e-artist').value);});
+$('up-btn').addEventListener('click',()=>$('upload').click());
+$('upload').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{$('card-art').crossOrigin='anonymous';$('card-art').src=ev.target.result;};r.readAsDataURL(f);$('editor').classList.add('on');$('actions').classList.add('on');syncCard();});
+
+const isIOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/.test(navigator.userAgent));
+function fileName(){return (($('e-title').value||'kartu').toLowerCase().replace(/[^a-z0-9]+/g,'-'))||'kartu';}
+function showPreview(url){
+  let ov=$('save-ov');
+  if(!ov){ov=document.createElement('div');ov.id='save-ov';
+    ov.innerHTML='<div class="ov-inner"><p>Tekan lama gambar → <b>Simpan ke Foto</b></p><img id="ov-img" alt=""><br><button id="ov-close">Tutup</button></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('click',e=>{if(e.target===ov||e.target.id==='ov-close')ov.style.display='none';});
+  }
+  $('ov-img').src=url;ov.style.display='flex';
+}
+$('dl-btn').addEventListener('click',async()=>{
+  const card=$('card');$('dl-btn').disabled=true;$('dl-btn').textContent='Merender…';
+  try{
+    const cv=await html2canvas(card,{backgroundColor:null,scale:3,useCORS:true,allowTaint:false});
+    const name=fileName(),url=cv.toDataURL('image/png');
+    let shared=false;
+    if(navigator.canShare){
+      await new Promise(res=>cv.toBlob(async b=>{
+        try{const f=new File([b],name+'.png',{type:'image/png'});
+          if(b&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});shared=true;}
+        }catch(e){}res();
+      },'image/png'));
+    }
+    if(!shared){ if(isIOS){showPreview(url);} else {const a=document.createElement('a');a.download=name+'.png';a.href=url;a.click();} }
+  }catch(err){setStatus('Gagal ekspor di sini. Coba buka file ini di Safari (bukan di dalam aplikasi Claude).',true);}
+  finally{$('dl-btn').disabled=false;$('dl-btn').textContent='Simpan gambar';}
+});
+
+$('reset-btn').addEventListener('click',()=>{$('q-song').value='';$('q-artist').value='';['e-title','e-artist','e-album','e-year'].forEach(id=>$(id).value='');$('results').innerHTML='';matches=[];$('editor').classList.remove('on');$('actions').classList.remove('on');$('card-art').src=PLACEHOLDER;state.dom=null;state.blur=null;syncCard();applyTheme();setStatus('');});
+$('search-btn').addEventListener('click',doSearch);
+[$('q-song'),$('q-artist')].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();}));
+function setStatus(m,err){statusEl.textContent=m;statusEl.classList.toggle('err',!!err);}
+
+$('card-art').crossOrigin='anonymous';$('card-art').src=PLACEHOLDER;
+</script>
+</body>
+</html>
